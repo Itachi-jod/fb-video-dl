@@ -6,93 +6,69 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Pretty JSON printer
+// Pretty Print helper
 function pretty(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
-app.get("/", (req, res) => {
-  res.send(
-    pretty({
-      success: true,
-      author: "ItachiXD",
-      message: "Facebook Downloader API Running"
-    })
-  );
-});
-
-// FACEBOOK ONLY DOWNLOAD ENDPOINT
 app.get("/api/download", async (req, res) => {
   const videoUrl = req.query.url;
 
   if (!videoUrl) {
-    return res.status(400).send(
-      pretty({
-        success: false,
-        author: "ItachiXD",
-        message: "Missing parameter ?url="
-      })
-    );
+    return res
+      .status(400)
+      .send(pretty({ error: "Missing ?url=" }));
   }
 
   try {
     const headers = {
       "Content-Type": "application/json",
       Accept: "application/json, text/plain, */*",
+      "User-Agent":
+        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
       Origin: "https://downloady.vercel.app",
       Referer: "https://downloady.vercel.app/",
-      "User-Agent":
-        "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0 Mobile Safari/537.36"
+      "Sec-Fetch-Site": "same-origin",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Dest": "empty",
     };
 
-    //  Call the Facebook backend API ONLY
-    const fbResponse = await axios.post(
+    const apiRes = await axios.post(
       "https://downloady.vercel.app/api/initiate-download",
       { url: videoUrl },
       { headers }
     );
 
-    const data = fbResponse.data;
-
-    // Extract one clean Facebook video URL
-    const finalUrl =
-      data?.videoUrl ||
-      data?.download_url ||
-      data?.url ||
-      data?.links?.download ||
-      data?.links?.[0] ||
-      null;
-
-    if (!finalUrl) {
-      return res.status(500).send(
-        pretty({
-          success: false,
-          author: "ItachiXD",
-          message: "Unable to extract Facebook video URL",
-          raw: data
-        })
-      );
-    }
-
-    // Final Clean Output
+    res.setHeader("Content-Type", "application/json");
     return res.send(
       pretty({
-        success: true,
         author: "ItachiXD",
-        platform: "Facebook",
-        download_url: finalUrl
+        success: true,
+        data: apiRes.data,
       })
     );
   } catch (err) {
+    console.error("Backend error:", err.response?.data || err.message);
+
+    res.setHeader("Content-Type", "application/json");
     return res.status(500).send(
       pretty({
-        success: false,
         author: "ItachiXD",
-        message: "Facebook API error",
-        error: err.response?.data || err.message
+        success: false,
+        error: "Failed to process the request",
+        details: err.response?.data || err.message,
       })
     );
   }
+});
+
+app.get("/", (req, res) => {
+  res.send(
+    pretty({
+      author: "ItachiXD",
+      status: "Video Downloader API Running...",
+    })
+  );
 });
 
 module.exports = app;
