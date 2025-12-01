@@ -1,12 +1,14 @@
 {
-  "name": "facebook-downloader",
+  "name": "video-downloader",
   "version": "1.0.0",
   "main": "index.js",
-  "author": "ItachiXD",
   "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
-    "axios": "^1.6.0",
+    "axios": "^1.6.7",
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "express": "^4.19.2"
   }
 }
