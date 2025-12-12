@@ -1,84 +1,70 @@
-// index.js
-const express = require("express");
 const axios = require("axios");
-const cors = require("cors");
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Pretty Print function
+// ---- Pretty Print Function ----
 function pretty(obj) {
   return JSON.stringify(obj, null, 2);
 }
 
-app.get("/api/facebook", async (req, res) => {
-  const videoUrl = req.query.url;
+module.exports = async function (req, res) {
+  const { url } = req.query;
 
-  if (!videoUrl) {
+  if (!url) {
     return res.status(400).send(
       pretty({
-        author: "ItachiXD",
         success: false,
-        message: "Missing ?url parameter",
+        author: "ItachiXD",
+        message: "Missing ?url="
       })
     );
   }
 
   try {
-    // Perfect headers (VERY IMPORTANT)
-    const headers = {
-      Accept: "application/json, text/plain, */*",
-      "Content-Type": "application/json",
-      "User-Agent":
-        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-      Referer: "https://facebook-di.vercel.app/",
-      Origin: "https://facebook-di.vercel.app",
-      "Sec-Fetch-Site": "same-origin",
-      "Sec-Fetch-Mode": "cors",
-      "Sec-Fetch-Dest": "empty",
-    };
+    const form = new URLSearchParams();
+    form.append("url", url);
 
-    // UPSTREAM API (GET)
-    const fbApi = `https://facebook-di.vercel.app/api/facebook?url=${encodeURIComponent(
-      videoUrl
-    )}`;
+    const response = await axios.post(
+      "https://www.fbvideo.l2u.in/app/main.php",
+      form,
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent":
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
+          Accept: "*/*",
+          "Accept-Language": "en-IN,en;q=0.9",
+          Cookie: "FCCDCF=1; FCNEC=1; gads=1; gpi=1;"
+        }
+      }
+    );
 
-    const apiRes = await axios.get(fbApi, { headers });
+    const data = response.data;
 
-    res.setHeader("Content-Type", "application/json");
-    return res.send(
+    const sd =
+      data?.data?.links?.["Download Low Quality"] ||
+      data?.links?.["Download Low Quality"] ||
+      null;
+
+    const hd =
+      data?.data?.links?.["Download High Quality"] ||
+      data?.links?.["Download High Quality"] ||
+      null;
+
+    return res.status(200).send(
       pretty({
-        author: "ItachiXD",
         success: true,
-        platform: "Facebook",
-        data: apiRes.data,
+        author: "ItachiXD",
+        platform: "facebook",
+        sd,
+        hd
       })
     );
   } catch (err) {
-    console.error("Upstream Error:", err.response?.data || err.message);
-
-    res.status(500).send(
+    return res.status(500).send(
       pretty({
-        author: "ItachiXD",
         success: false,
-        message: "Upstream request failed",
-        upstream_status: err.response?.status || "unknown",
-        upstream_message: err.response?.data || err.message,
+        author: "ItachiXD",
+        error: err.message
       })
     );
   }
-});
-
-// Default route
-app.get("/", (req, res) => {
-  res.send(
-    pretty({
-      author: "ItachiXD",
-      status: "Facebook Downloader API is running...",
-      endpoint: "/api/facebook?url=<video-url>",
-    })
-  );
-});
-
-module.exports = app;
+};
