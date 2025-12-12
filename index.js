@@ -2,10 +2,12 @@ const axios = require("axios");
 
 // ---- Pretty Print Function ----
 function pretty(obj) {
-  return JSON.stringify(obj, null, 2);
+  return JSON.stringify(obj, null, 2); // always pretty print
 }
 
 module.exports = async function (req, res) {
+  res.setHeader("Content-Type", "application/json"); // force JSON output
+
   const { url } = req.query;
 
   if (!url) {
