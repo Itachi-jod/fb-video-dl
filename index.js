@@ -1,72 +1,38 @@
-const axios = require("axios");
+const express = require('express');
+const axios = require('axios');
+const app = express();
+const PORT = 3000;
 
-// ---- Pretty Print Function ----
-function pretty(obj) {
-  return JSON.stringify(obj, null, 2); // always pretty print
-}
-
-module.exports = async function (req, res) {
-  res.setHeader("Content-Type", "application/json"); // force JSON output
-
+app.get('/api/fb', async (req, res) => {
   const { url } = req.query;
-
-  if (!url) {
-    return res.status(400).send(
-      pretty({
-        success: false,
-        author: "ItachiXD",
-        message: "Missing ?url="
-      })
-    );
-  }
+  if (!url) return res.status(400).json({ success: false, error: 'Missing URL' });
 
   try {
-    const form = new URLSearchParams();
-    form.append("url", url);
+    const response = await axios.get(`https://facebook-dl.vercel.app/api/facebook?url=${encodeURIComponent(url)}`);
+    const videoData = response.data;
 
-    const response = await axios.post(
-      "https://www.fbvideo.l2u.in/app/main.php",
-      form,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent":
-            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-          Accept: "*/*",
-          "Accept-Language": "en-IN,en;q=0.9",
-          Cookie: "FCCDCF=1; FCNEC=1; gads=1; gpi=1;"
-        }
+    res.json({
+      success: true,
+      data: {
+        developer: "Denish x Ryukazi",
+        status: true,
+        data: [
+          {
+            title: videoData.title,
+            thumbnail: videoData.thumbnail,
+            hd_link: videoData.hd_link,
+            sd_link: videoData.sd_link
+          }
+        ]
       }
-    );
-
-    const data = response.data;
-
-    const sd =
-      data?.data?.links?.["Download Low Quality"] ||
-      data?.links?.["Download Low Quality"] ||
-      null;
-
-    const hd =
-      data?.data?.links?.["Download High Quality"] ||
-      data?.links?.["Download High Quality"] ||
-      null;
-
-    return res.status(200).send(
-      pretty({
-        success: true,
-        author: "ItachiXD",
-        platform: "facebook",
-        sd,
-        hd
-      })
-    );
+    });
   } catch (err) {
-    return res.status(500).send(
-      pretty({
-        success: false,
-        author: "ItachiXD",
-        error: err.message
-      })
-    );
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch video info',
+      details: err.message
+    });
   }
-};
+});
+
+app.listen(PORT, () => console.log(`Facebook downloader API running on port ${PORT}`));
